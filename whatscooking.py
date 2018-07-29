@@ -6,6 +6,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import confusion_matrix, accuracy_score
 from collections import Counter
 from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.pipeline import make_pipeline, make_union
 
 class Coookings:
 
@@ -14,6 +15,8 @@ class Coookings:
     self.train_data = json.load(open('data/train.json'))
     self.test_data = json.load(open('data/test.json'))
 
+    # note that test data looks similar to train data but there are NO cuisine fields
+
     cuis_ = [_['cuisine'] for _ in self.train_data]
     ids_ = {_['id'] for _ in self.train_data}
     ingrs_ = {i.lower().strip() for _ in self.train_data for i in _['ingredients']}
@@ -21,7 +24,26 @@ class Coookings:
     print(f'records: {len(self.train_data):,}\ncuisines: {len(set(cuis_))}\ningredients: {len(ingrs_):,}')
     print(sorted([(k, v) for k, v in Counter(cuis_).items()], key=lambda _: _[1], reverse=True))
 
-  def make_matrix(self, )
+    self.train_ = pd.DataFrame.from_dict([{'id': r['id'], 
+                                            'ingredients': '. '.join(r['ingredients']), 'cuisine': r['cuisine']}  
+              for r in self.train_data])
+
+  def split(self):
+
+    X = self.train_[['ingredients']]
+    y = self.train_[['cuisine']]
+
+    self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(X, y, 
+          test_size=0.3, random_state=42, stratify=y)
+
+    return self
+
+  def train_model(self):
+
+    pipeline = make_pipeline(CountVectorizer(strip_accents='ascii', analyzer='word', ngram_range=(1,3)),
+                              RandomForestClassifier())
+    print(self.X_train.shape)
+    pipeline.fit(self.X_train)
 
 """
   {
@@ -43,7 +65,8 @@ class Coookings:
 
 if __name__ == '__main__':
 
-  cook = Coookings()
+  cook = Coookings().split().train_model()
+
 # tr = []
 
 # for r in train_data:
@@ -60,8 +83,7 @@ if __name__ == '__main__':
 
 # train_data_df['cuisine'] = le.transform(train_data_df['cuisine'])
 
-# X_train, X_test, y_train, y_test = train_test_split(train_data_df.drop('cuisine', axis=1), train_data_df['cuisine'], 
-#           test_size=0.3, random_state=42, stratify=train_data_df['cuisine'])
+
 
 # print(X_train.shape)
 
