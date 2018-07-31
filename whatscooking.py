@@ -8,64 +8,91 @@ from collections import Counter
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.pipeline import make_pipeline, make_union
 
+from sklearn.base import BaseEstimator, TransformerMixin
+
+class C1(BaseEstimator, TransformerMixin):
+
+		def fit(self, X, y=None, **fit_params):
+				return self
+
+		def transform(self, X, **transform_params):
+				return [_ for _ in X['ingredients'].str.split('.')]
+
+
 class Coookings:
 
-  def __init__(self):
+	def __init__(self):
 
-    self.train_data = json.load(open('data/train.json'))
-    self.test_data = json.load(open('data/test.json'))
+		self.train_data = json.load(open('data/train.json'))
+		self.test_data = json.load(open('data/test.json'))
 
-    # note that test data looks similar to train data but there are NO cuisine fields
+		# note that test data looks similar to train data but there are NO cuisine fields
 
-    cuis_ = [_['cuisine'] for _ in self.train_data]
-    ids_ = {_['id'] for _ in self.train_data}
-    ingrs_ = {i.lower().strip() for _ in self.train_data for i in _['ingredients']}
+		cuis_ = [_['cuisine'] for _ in self.train_data]
+		ids_ = {_['id'] for _ in self.train_data}
+		ingrs_ = {i.lower().strip() for _ in self.train_data for i in _['ingredients']}
 
-    print(f'records: {len(self.train_data):,}\ncuisines: {len(set(cuis_))}\ningredients: {len(ingrs_):,}')
-    print(sorted([(k, v) for k, v in Counter(cuis_).items()], key=lambda _: _[1], reverse=True))
+		print(f'records: {len(self.train_data):,}\ncuisines: {len(set(cuis_))}\ningredients: {len(ingrs_):,}')
+		print(sorted([(k, v) for k, v in Counter(cuis_).items()], key=lambda _: _[1], reverse=True))
 
-    self.train_ = pd.DataFrame.from_dict([{'id': r['id'], 
-                                            'ingredients': '. '.join(r['ingredients']), 'cuisine': r['cuisine']}  
-              for r in self.train_data])
+		self.train_ = pd.DataFrame.from_dict([{'id': r['id'], 
+																						'ingredients': '. '.join(r['ingredients']), 'cuisine': r['cuisine']}  
+							for r in self.train_data])
 
-  def split(self):
+	def split(self):
 
-    X = self.train_[['ingredients']]
-    y = self.train_[['cuisine']]
+		X = self.train_['ingredients'].str.split('.')
+		y = self.train_['cuisine']
 
-    self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(X, y, 
-          test_size=0.3, random_state=42, stratify=y)
+		self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(X, y, 
+					test_size=0.3, random_state=42, stratify=y)
 
-    return self
+		print(self.X_train.head())
 
-  def train_model(self):
+		return self
 
-    pipeline = make_pipeline(CountVectorizer(strip_accents='ascii', analyzer='word', ngram_range=(1,3)),
-                              RandomForestClassifier())
-    print(self.X_train.shape)
-    pipeline.fit(self.X_train)
+	def train_model(self):
 
+		# cv = CountVectorizer(strip_accents='ascii', analyzer='word', ngram_range=(1,2))
+
+		# cv.fit(self.X_train['ingredients'].str.split('.'))
+
+		# print(cv.vocabulary_)
+
+
+		pipeline = make_pipeline(C1, CountVectorizer(strip_accents='ascii', analyzer='word', ngram_range=(1,2)),
+															RandomForestClassifier())
+		# print(len(self.X_train.shape))
+		# print(self.y_train.shape)
+
+		# d = self.X_train['ingredients'].tolist()
+
+		# print(d[:20])
+
+		# print(self.y_train[:20])
+
+		pipeline.fit(self.X_train)
 """
-  {
-    "id": 10259,
-    "cuisine": "greek",
-    "ingredients": [
-      "romaine lettuce",
-      "black olives",
-      "grape tomatoes",
-      "garlic",
-      "pepper",
-      "purple onion",
-      "seasoning",
-      "garbanzo beans",
-      "feta cheese crumbles"
-    ]
-  },
+	{
+		"id": 10259,
+		"cuisine": "greek",
+		"ingredients": [
+			"romaine lettuce",
+			"black olives",
+			"grape tomatoes",
+			"garlic",
+			"pepper",
+			"purple onion",
+			"seasoning",
+			"garbanzo beans",
+			"feta cheese crumbles"
+		]
+	},
 """
 
 if __name__ == '__main__':
 
-  cook = Coookings().split().train_model()
+	cook = Coookings().split().train_model()
 
 # tr = []
 
