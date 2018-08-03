@@ -16,7 +16,8 @@ class C1(BaseEstimator, TransformerMixin):
 				return self
 
 		def transform(self, X, **transform_params):
-				return [_ for _ in X['ingredients'].str.split('.')]
+				print(X.str.split('.').tolist())
+				return X.str.split('.').tolist()
 
 
 class Coookings:
@@ -41,7 +42,7 @@ class Coookings:
 
 	def split(self):
 
-		X = self.train_['ingredients'].str.split('.')
+		X = self.train_['ingredients']
 		y = self.train_['cuisine']
 
 		self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(X, y, 
@@ -60,7 +61,7 @@ class Coookings:
 		# print(cv.vocabulary_)
 
 
-		pipeline = make_pipeline(C1, CountVectorizer(strip_accents='ascii', analyzer='word', ngram_range=(1,2)),
+		pipeline = make_pipeline(C1(), CountVectorizer(strip_accents='ascii', analyzer='word', ngram_range=(1,2)),
 															RandomForestClassifier())
 		# print(len(self.X_train.shape))
 		# print(self.y_train.shape)
