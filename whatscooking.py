@@ -8,6 +8,10 @@ from collections import Counter
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.pipeline import make_pipeline, make_union
 from itertools import chain
+from sklearn.linear_model import LogisticRegression
+from nltk.stem import WordNetLemmatizer
+from nltk import word_tokenize
+import os
 
 from sklearn.base import BaseEstimator, TransformerMixin
 
@@ -21,6 +25,15 @@ class C1(BaseEstimator, TransformerMixin):
 				print(lst)
 				return lst
 
+class Lemmatizer:
+
+	def __init__(self):
+
+		self.wnl = WordNetLemmatizer()
+
+	def __call__(self, doc):
+
+		return [self.wnl.lemmatize(t) for t in word_tokenize(doc)]
 
 class Coookings:
 
@@ -29,31 +42,54 @@ class Coookings:
 		self.train_data = pd.read_json('data/train.json', orient='records')
 		self.test_data = pd.read_json('data/test.json', orient='records')
 
-		# note that test data looks similar to train data but there are NO cuisine fields
-
 	def split(self):
 
 		X = self.train_data['ingredients'].str.join('. ')
 		y = self.train_data['cuisine']
 
 		self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(X, y, 
-					test_size=0.3, random_state=42, stratify=y)
-
-		print(f'testing set: {self.X_train.shape}')
-
+					test_size=0.25, random_state=111, stratify=y)
 
 		return self
 
 	def train_model(self):
 
-		pipeline = make_pipeline(CountVectorizer(strip_accents='ascii', analyzer='word', ngram_range=(1,2)),
-															RandomForestClassifier())
+		self.pipeline = make_pipeline(CountVectorizer(tokenizer=Lemmatizer(), strip_accents='ascii', 
+											analyzer='word', ngram_range=(1,2)),
+												LogisticRegression())
+		print('fitting pipeline...')
 
-		print(self.X_train.head())
-		print(self.X_train.shape)
-		print(len(self.X_train.shape))
-		pipeline.fit(self.X_train)
+		self.pipeline.fit(self.X_train, self.y_train)
+
+		return self
+
+	def predict(self):
+
+		print('making prediction...')
+		# note: prediction is a numpy array
+		self.y_pred = self.pipeline.predict(self.X_test)
+
+		print('creating submission..')
+		yhat = pd.Series(self.pipeline.predict(self.test_data['ingredients'].str.join('. ')), 
+													name='cuisine', 
+														index=self.test_data['id'])
+
+		if not os.path.exists('submission'):
+			os.mkdir('submission')
+
+		yhat.to_csv('submission/submission.csv', header=True)
+
+		return self
+
+
+		
+
+	def get_metrics(self):
+
+		self.accuracy = accuracy_score(self.y_test, self.y_pred)
+		print(f'accuracy: {self.accuracy: .4f}')
+
 
 if __name__ == '__main__':
 
-	cook = Coookings().split().train_model()
+	cook = Coookings().split().train_model().predict().get_metrics()
