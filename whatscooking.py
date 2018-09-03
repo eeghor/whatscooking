@@ -10,7 +10,9 @@ from sklearn.pipeline import make_pipeline, make_union
 from itertools import chain
 from sklearn.linear_model import LogisticRegression
 from nltk.stem import WordNetLemmatizer
+from sklearn.ensemble import AdaBoostClassifier
 from nltk import word_tokenize
+from nltk.stem.porter import PorterStemmer
 import os
 
 from sklearn.base import BaseEstimator, TransformerMixin
@@ -30,10 +32,11 @@ class Lemmatizer:
 	def __init__(self):
 
 		self.wnl = WordNetLemmatizer()
+		self.stemmer = PorterStemmer()
 
 	def __call__(self, doc):
 
-		return [self.wnl.lemmatize(t) for t in word_tokenize(doc)]
+		return [self.stemmer.stem(t) for t in word_tokenize(doc)]
 
 class Coookings:
 
